@@ -37,6 +37,7 @@ public class NaivePlayer extends Player {
         public void shutdown(){
             this.flag = false;
         }
+
         @Override
         public void run() {
             Move randomMove;
@@ -51,22 +52,25 @@ public class NaivePlayer extends Player {
                 randomMove = moves.get(random.nextInt(moves.size()));
                 strMove = convertStrangeMoveToString(randomMove);
                 intMove = convertStrMoveToInts(strMove);
+                if (!flag)
+                    break;
                 minimax = implementMove(map, intMove);
+                if (!flag)
+                    break;
                 res = mapValue(minimax, pointsMap);
                 if (res > threadValue[threadId]){
                     threadValue[threadId] = res;
                     threadMove[threadId] = randomMove;
                 }
             }
-            return;
+            System.out.println("a");
         }
-
     }
 
     private Random random = new Random(0xdeadbeef);
 
     // miliseconds that program has to response with final move
-    private int maximumResponseTime = 100;
+    private int maximumResponseTime = 750;
     // flag which tells program to stop calculating
     private boolean end = false;
     // number of calculation thread helpers
@@ -213,10 +217,11 @@ public class NaivePlayer extends Player {
                         result -= Math.pow(enemy, cubeCoefficient);
                         enemy = 0;
                     }
-                    System.out.println("Horizontal = " + result);
+                    //System.out.println("Horizontal = " + result);
                 }
             }
         }
+
         // vertical
         for (int x = 0; x < N; x++) {
             int me = 0, enemy = 0;
@@ -242,7 +247,7 @@ public class NaivePlayer extends Player {
                         result -= Math.pow(enemy, cubeCoefficient);
                         enemy = 0;
                     }
-                    System.out.println("Vertical = " + result);
+                    //System.out.println("Vertical = " + result);
                 }
             }
         }
@@ -271,7 +276,7 @@ public class NaivePlayer extends Player {
                         result -= Math.pow(enemy, cubeCoefficient);
                         enemy = 0;
                     }
-                    System.out.println("Diagonal 1 = " + result);
+                    //System.out.println("Diagonal 1 = " + result);
                 }
             }
         }
@@ -300,7 +305,7 @@ public class NaivePlayer extends Player {
                         result -= Math.pow(enemy, cubeCoefficient);
                         enemy = 0;
                     }
-                    System.out.println("Diagonal 2 = " + result);
+                    //System.out.println("Diagonal 2 = " + result);
                 }
             }
         }
@@ -329,7 +334,7 @@ public class NaivePlayer extends Player {
                         result -= Math.pow(enemy, cubeCoefficient);
                         enemy = 0;
                     }
-                    System.out.println("Diagonal 3 = " + result);
+                    //System.out.println("Diagonal 3 = " + result);
                 }
             }
         }
@@ -358,7 +363,7 @@ public class NaivePlayer extends Player {
                         result -= Math.pow(enemy, cubeCoefficient);
                         enemy = 0;
                     }
-                    System.out.println("Diagonal 4 = " + result);
+                    //System.out.println("Diagonal 4 = " + result);
                 }
             }
         }
@@ -432,6 +437,7 @@ public class NaivePlayer extends Player {
         List<Move> enemyMoves = b.getMovesFor(badColor);
 
         calculateBoardValue(b);
+
         CalculationHelper[] helpers = new CalculationHelper[threadsNo];
         for (int i=0; i<threadsNo; i++){
             helpers[i] = new CalculationHelper(moves, enemyMoves);
@@ -460,10 +466,7 @@ public class NaivePlayer extends Player {
         }
         System.out.println("Heurestic value = " + currentValue);
         id = 0;
-        for (int i=0; i<threadsNo; i++){
-
-            helpers[i].wait();
-        }
+        System.out.println("X");
         return finalMove;
     }
 }
