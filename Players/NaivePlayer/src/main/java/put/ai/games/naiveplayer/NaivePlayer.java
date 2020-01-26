@@ -70,7 +70,7 @@ public class NaivePlayer extends Player {
     // flag which tells program to stop calculating
     private boolean end = false;
     // number of calculation thread helpers
-    private int threadsNo = 0;
+    private int threadsNo = 3;
     // depth of minmax tree
     private int depth = 2;
     // id of calculation thread
@@ -175,11 +175,190 @@ public class NaivePlayer extends Player {
     }
 
     public float mapValue(Integer[][] M, Integer[][] pointsM) {
+        float cubeCoefficient = 2; // coefficient in cube polynomal while checking for pawns near by
         float result = 0;
-        for (int i = 0; i < M.length; i++) {
-            for (int j = 0; j < M[i].length; j++) {
+        int N = M.length;
+        int winNumber = N / 2 + ((N / 2 + 1) / 2);
+        // Calculate value by players pawns near middle of map
+        for (int i = 0; i < N; i++) {
+            for (int j = 0; j < N; j++) {
                 if (M[i][j] != 0) {
                     result += M[i][j] * pointsM[i][j];
+                }
+            }
+        }
+        // Calculate value by pawns near by, leading to win
+        // horizontal
+        for (int y = 0; y < N; y++) {
+            int me = 0, enemy = 0;
+            for (int x = 0; x < N; x++) {
+                if (M[x][y] > 0) {
+                    me++;
+                    enemy = 0;
+                }
+                else if (M[x][y] < 0){
+                    enemy++;
+                    me = 0;
+                }
+                else{
+                    if (me > 0) {
+                        if (me == winNumber)
+                            result += 99999;
+                        result += Math.pow(me, cubeCoefficient);
+                        me = 0;
+                    }
+                    else if (enemy > 0) {
+                        if (enemy == winNumber)
+                            result -= 99999;
+                        result -= Math.pow(enemy, cubeCoefficient);
+                        enemy = 0;
+                    }
+                    System.out.println("Horizontal = " + result);
+                }
+            }
+        }
+        // vertical
+        for (int x = 0; x < N; x++) {
+            int me = 0, enemy = 0;
+            for (int y = 0; y < N; y++) {
+                if (M[x][y] > 0) {
+                    me++;
+                    enemy = 0;
+                }
+                else if (M[x][y] < 0){
+                    enemy++;
+                    me = 0;
+                }
+                else{
+                    if (me > 0) {
+                        if (me == winNumber)
+                            result += 99999;
+                        result += Math.pow(me, cubeCoefficient);
+                        me = 0;
+                    }
+                    else if (enemy > 0) {
+                        if (enemy == winNumber)
+                            result -= 99999;
+                        result -= Math.pow(enemy, cubeCoefficient);
+                        enemy = 0;
+                    }
+                    System.out.println("Vertical = " + result);
+                }
+            }
+        }
+        // diagonal NW -> SE first half
+        for (int y = N-1; y >= 0; y--){
+            int me = 0, enemy = 0;
+            for (int x = 0; x < N - y; x++){
+                if (M[x][y+x] > 0){
+                    me++;
+                    enemy = 0;
+                }
+                else if (M[x][y+x] < 0){
+                    enemy++;
+                    me = 0;
+                }
+                else{
+                    if (me > 0) {
+                        if (me == winNumber)
+                            result += 99999;
+                        result += Math.pow(me, cubeCoefficient);
+                        me = 0;
+                    }
+                    else if (enemy > 0) {
+                        if (enemy == winNumber)
+                            result -= 99999;
+                        result -= Math.pow(enemy, cubeCoefficient);
+                        enemy = 0;
+                    }
+                    System.out.println("Diagonal 1 = " + result);
+                }
+            }
+        }
+        // diagonal NW -> SE second half
+        for (int x = 1; x < N; x++){
+            int me = 0, enemy = 0;
+            for (int y = 0; y < N - x; y++){
+                if (M[x+y][y] > 0){
+                    me++;
+                    enemy = 0;
+                }
+                else if (M[x+y][y] < 0){
+                    enemy++;
+                    me = 0;
+                }
+                else{
+                    if (me > 0) {
+                        if (me == winNumber)
+                            result += 99999;
+                        result += Math.pow(me, cubeCoefficient);
+                        me = 0;
+                    }
+                    else if (enemy > 0) {
+                        if (enemy == winNumber)
+                            result -= 99999;
+                        result -= Math.pow(enemy, cubeCoefficient);
+                        enemy = 0;
+                    }
+                    System.out.println("Diagonal 2 = " + result);
+                }
+            }
+        }
+        // diagonal NE -> SW first half
+        for (int y = N - 1; y >= 0; y--){
+            int me = 0, enemy = 0;
+            for (int x = N - 1; x >= y; x--){
+                if (M[x][y + ((N-1)-x)] > 0){
+                    me++;
+                    enemy = 0;
+                }
+                else if (M[x][y + ((N-1)-x)] < 0){
+                    enemy++;
+                    me = 0;
+                }
+                else{
+                    if (me > 0) {
+                        if (me == winNumber)
+                            result += 99999;
+                        result += Math.pow(me, cubeCoefficient);
+                        me = 0;
+                    }
+                    else if (enemy > 0) {
+                        if (enemy == winNumber)
+                            result -= 99999;
+                        result -= Math.pow(enemy, cubeCoefficient);
+                        enemy = 0;
+                    }
+                    System.out.println("Diagonal 3 = " + result);
+                }
+            }
+        }
+        // diagonal NE -> SW second half
+        for (int x = N - 2; x >= 0; x--){
+            int me = 0, enemy = 0;
+            for (int y = 0; y < x + 1; y++){
+                if (M[x - y][y] > 0){
+                    me++;
+                    enemy = 0;
+                }
+                else if (M[x][y + ((N-1)-x)] < 0){
+                    enemy++;
+                    me = 0;
+                }
+                else{
+                    if (me > 0) {
+                        if (me == winNumber)
+                            result += 99999;
+                        result += Math.pow(me, cubeCoefficient);
+                        me = 0;
+                    }
+                    else if (enemy > 0) {
+                        if (enemy == winNumber)
+                            result -= 99999;
+                        result -= Math.pow(enemy, cubeCoefficient);
+                        enemy = 0;
+                    }
+                    System.out.println("Diagonal 4 = " + result);
                 }
             }
         }
@@ -190,7 +369,6 @@ public class NaivePlayer extends Player {
         int size = b.getSize();
 
         int half = (int) ((size-1)/2);
-        int winNumber = size / 2 + ((size / 2 + 1) / 2);
         map = new Integer[size][size];
         pointsMap = new Integer[size][size];
         for (int i=0; i < map.length / 2; i++) {
@@ -281,8 +459,9 @@ public class NaivePlayer extends Player {
             finalMove = moves.get(random.nextInt(moves.size()));
         }
         System.out.println("Heurestic value = " + currentValue);
-        threadsNo = 0;
+        id = 0;
         for (int i=0; i<threadsNo; i++){
+
             helpers[i].wait();
         }
         return finalMove;
