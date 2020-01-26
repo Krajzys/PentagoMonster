@@ -4,26 +4,287 @@
  */
 package put.ai.games.naiveplayer;
 
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
 import java.util.List;
 import java.util.Random;
+
 import put.ai.games.game.Board;
 import put.ai.games.game.Move;
 import put.ai.games.game.Player;
 
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
+
+
 public class NaivePlayer extends Player {
+    private final Lock endLock = new ReentrantLock(true);
+    private final Lock streamLock = new ReentrantLock(true);
+
+    class CalculationHelper implements Runnable {
+        private List<Move> moves;
+        private List<Move> enemyMoves;
+        private int threadId;
+        private volatile boolean flag = true;
+        public CalculationHelper(List<Move> moves, List<Move> enemyMoves) {
+            this.moves = moves;
+            this.enemyMoves = enemyMoves;
+            endLock.lock();
+            threadId = id++;
+            endLock.unlock();
+        }
+        public void shutdown(){
+            this.flag = false;
+        }
+        @Override
+        public void run() {
+            Move randomMove;
+            threadValue[threadId] = currentValue;
+            threadMove[threadId] = null;
+            Integer[][] minimax = null;
+            float res;
+            String strMove;
+            Integer[] intMove;
+            while(flag){
+                //some calculations
+                randomMove = moves.get(random.nextInt(moves.size()));
+                strMove = convertStrangeMoveToString(randomMove);
+                intMove = convertStrMoveToInts(strMove);
+                minimax = implementMove(map, intMove);
+                res = mapValue(minimax, pointsMap);
+                if (res > threadValue[threadId]){
+                    threadValue[threadId] = res;
+                    threadMove[threadId] = randomMove;
+                }
+            }
+            return;
+        }
+
+    }
 
     private Random random = new Random(0xdeadbeef);
 
+    // miliseconds that program has to response with final move
+    private int maximumResponseTime = 100;
+    // flag which tells program to stop calculating
+    private boolean end = false;
+    // number of calculation thread helpers
+    private int threadsNo = 0;
+    // depth of minmax tree
+    private int depth = 2;
+    // id of calculation thread
+    private static int id = 0;
+    // final move of thread
+    private Move[] threadMove = new Move[threadsNo];
+    // value of thread's move
+    private float[] threadValue = new float[threadsNo];
 
-    @Override
-    public String getName() {
-        return "Gracz Naiwny 84868";
+    // current value of move
+    private float currentValue = 0;
+    // final move which will be response
+    private Move finalMove = null;
+
+    Board globalBoard = null;
+
+    private Integer[][] map = null;
+    private Integer[][] pointsMap = null;
+
+    Color goodColor = null;
+    Color badColor = null;
+
+    public Integer[][] implementMove(Integer[][] map, Integer[] move) {
+        Integer[][] result = new Integer[map.length][];
+        for(int i = 0; i < map.length; i++)
+            result[i] = map[i].clone();
+        result[move[0]][move[1]] = 1;
+
+        boolean clock;
+        int quarter;
+        /* quarter: 1 = [ *  ]   2 = [  * ]  3 = [    ]   4 = [    ]
+                        [    ]       [    ]      [ *  ]       [  * ]
+         */
+        if (move[2] < map.length / 2 && move[3] < map.length / 2)
+            quarter = 1;
+        else if (move[2] >= map.length / 2 && move[3] < map.length / 2)
+            quarter = 2;
+        else if (move[2] < map.length / 2 && move[3] >= map.length / 2)
+            quarter = 3;
+        else
+            quarter = 4;
+        clock = move[2] < move[4];
+
+        result = doRotation(result, quarter, clock);
+        return result;
+    }
+
+    public Integer[][] doRotation(Integer[][] map, int quarter, boolean clock){
+        Integer[][] result = new Integer[map.length][];
+        for(int i = 0; i < map.length; i++)
+            result[i] = map[i].clone();
+        int N = map.length;
+
+        if (clock){
+            for (int i = 0; i < N / 2; i++) {
+                for (int j = 0; j < N - 1 - 2 * i; j++) {
+                    int temp = result[j + i][N - 1 - i];
+                    result[j + i][N - 1 - i] = result[i][j + i];
+                    result[i][j + i] = result[N - 1 - j - i][i];
+                    result[N - 1 - j - i][i] = result[N - 1 - i][N - 1 - j - i];
+                    result[N - 1 - i][N - 1 - j - i] = temp;
+                }
+            }
+        }
+        else {
+            for (int x = 0; x < N / 2; x++) {
+                for (int y = x; y < N - x - 1; y++) {
+                    int temp = result[x][y];
+                    result[x][y] = result[y][N - 1 - x];
+                    result[y][N - 1 - x] = result[N - 1 - x][N - 1 - y];
+                    result[N - 1 - x][N - 1 - y] = result[N - 1 - y][x];
+                    result[N - 1 - y][x] = temp;
+                }
+            }
+        }
+        return result;
     }
 
 
+    public String convertStrangeMoveToString(Move move){
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        PrintStream ps = new PrintStream(baos);
+        streamLock.lock();
+        PrintStream old = System.out;
+        System.setOut(ps);
+        System.out.println(move);
+        System.out.flush();
+        System.setOut(old);
+        streamLock.unlock();
+        return baos.toString();
+    }
+
+    public Integer[] convertStrMoveToInts(String strMove) {
+        Integer[] result = new Integer[6];
+        String regexed = strMove.replaceAll("[^0-9,)]", ""
+            ).replaceAll("[)]",",").replaceAll(",,",",");
+        String strInts[] = regexed.split(",");
+        for(int i=0; i<6; i++){
+            result[i] = Integer.parseInt(strInts[i]);
+        }
+        return result;
+    }
+
+    public float mapValue(Integer[][] M, Integer[][] pointsM) {
+        float result = 0;
+        for (int i = 0; i < M.length; i++) {
+            for (int j = 0; j < M[i].length; j++) {
+                if (M[i][j] != 0) {
+                    result += M[i][j] * pointsM[i][j];
+                }
+            }
+        }
+        return result;
+    }
+
+    public void calculateBoardValue(Board b) {
+        int size = b.getSize();
+
+        int half = (int) ((size-1)/2);
+        int winNumber = size / 2 + ((size / 2 + 1) / 2);
+        map = new Integer[size][size];
+        pointsMap = new Integer[size][size];
+        for (int i=0; i < map.length / 2; i++) {
+            for (int j=0; j < map[i].length / 2; j++) {
+                pointsMap[i][j] = (half - Math.abs(half - i)) + (half - Math.abs(half - j)) + 1;
+                if (b.getState(i, j) == goodColor) {
+                    map[i][j] = 1;
+                } else if (b.getState(i, j) == badColor) {
+                    map[i][j] = -1;
+                } else map[i][j] = 0;
+            }
+        }
+        for (int i=map.length / 2; i < map.length; i++) {
+            for (int j=0; j < map[i].length / 2; j++) {
+                pointsMap[i][j] = (half - Math.abs(half - i)) + (half - Math.abs(half - j)) + 2;
+                if (b.getState(i, j) == goodColor) {
+                    map[i][j] = 1;
+                } else if (b.getState(i, j) == badColor) {
+                    map[i][j] = -1;
+                } else map[i][j] = 0;
+            }
+        }
+        for (int i=0; i < map.length / 2; i++) {
+            for (int j=map.length / 2; j < map[i].length; j++) {
+                pointsMap[i][j] = (half - Math.abs(half - i)) + (half - Math.abs(half - j)) + 2;
+                if (b.getState(i, j) == goodColor) {
+                    map[i][j] = 1;
+                } else if (b.getState(i, j) == badColor) {
+                    map[i][j] = -1;
+                } else map[i][j] = 0;
+            }
+        }
+        for (int i=map.length / 2; i < map.length; i++) {
+            for (int j=map.length / 2; j < map[i].length; j++) {
+                pointsMap[i][j] = (half - Math.abs(half - i)) + (half - Math.abs(half - j)) + 3;
+                if (b.getState(i, j) == goodColor) {
+                    map[i][j] = 1;
+                } else if (b.getState(i, j) == badColor) {
+                    map[i][j] = -1;
+                } else map[i][j] = 0;
+            }
+        }
+        currentValue = mapValue(map, pointsMap);
+        System.out.println("Current value is " + currentValue);
+    }
+
     @Override
-    public Move nextMove(Board b) {
-        List<Move> moves = b.getMovesFor(getColor());
-        return moves.get(random.nextInt(moves.size()));
+    public String getName() {
+        return "Krzysztof Charlikowski 136689 Maciej Leszczyk 136759";
+    }
+
+    @Override
+    public Move nextMove(Board b) throws InterruptedException {
+        long start = System.currentTimeMillis();
+        long maxTime = getTime();
+
+        goodColor = getColor();
+        badColor = (goodColor == Color.PLAYER1) ? Color.PLAYER2 : Color.PLAYER1;
+
+        List<Move> moves = b.getMovesFor(goodColor);
+        List<Move> enemyMoves = b.getMovesFor(badColor);
+
+        calculateBoardValue(b);
+        CalculationHelper[] helpers = new CalculationHelper[threadsNo];
+        for (int i=0; i<threadsNo; i++){
+            helpers[i] = new CalculationHelper(moves, enemyMoves);
+            Thread th = new Thread(helpers[i]);
+            th.start();
+        }
+        // Count time to end of turn
+        while(true) {
+            long currentTime = System.currentTimeMillis() - start;
+            if(maxTime - currentTime <= maximumResponseTime) {
+                break;
+            }
+        }
+        for (int i=0; i<threadsNo; i++){
+            helpers[i].shutdown();
+        }
+
+        for (int i=0; i<threadsNo; i++){
+            if (threadValue[i] > currentValue){
+                finalMove = threadMove[i];
+                currentValue = threadValue[i];
+            }
+        }
+        if (finalMove == null){
+            finalMove = moves.get(random.nextInt(moves.size()));
+        }
+        System.out.println("Heurestic value = " + currentValue);
+        threadsNo = 0;
+        for (int i=0; i<threadsNo; i++){
+            helpers[i].wait();
+        }
+        return finalMove;
     }
 }

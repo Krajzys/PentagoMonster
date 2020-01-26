@@ -92,5 +92,5 @@ public abstract class Player {
     /**
      * Zwraca ruch, który powinien zostac wykonany w stanie reprezentowanym przez board
      */
-    public abstract Move nextMove(Board board);
+    public abstract Move nextMove(Board board) throws InterruptedException;
 }
