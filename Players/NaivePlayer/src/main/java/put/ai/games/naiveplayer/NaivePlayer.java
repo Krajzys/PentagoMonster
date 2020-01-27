@@ -4,8 +4,6 @@
  */
 package put.ai.games.naiveplayer;
 
-import java.io.ByteArrayOutputStream;
-import java.io.PrintStream;
 import java.util.List;
 import java.util.Random;
 
@@ -13,26 +11,19 @@ import put.ai.games.game.Board;
 import put.ai.games.game.Move;
 import put.ai.games.game.Player;
 
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
-
-
 
 public class NaivePlayer extends Player {
-    private final Lock endLock = new ReentrantLock(true);
-    private final Lock streamLock = new ReentrantLock(true);
 
     class CalculationHelper implements Runnable {
         private List<Move> moves;
         private List<Move> enemyMoves;
         private int threadId;
         private volatile boolean flag = true;
-        public CalculationHelper(List<Move> moves, List<Move> enemyMoves) {
+        private Random threadRandom;
+        public CalculationHelper(List<Move> moves, List<Move> enemyMoves, int threadId) {
             this.moves = moves;
             this.enemyMoves = enemyMoves;
-            endLock.lock();
-            threadId = id++;
-            endLock.unlock();
+            this.threadId = threadId;
         }
         public void shutdown(){
             this.flag = false;
@@ -40,18 +31,17 @@ public class NaivePlayer extends Player {
 
         @Override
         public void run() {
+            threadRandom = new Random(0xdeadbeef + threadId);
             Move randomMove;
             threadValue[threadId] = currentValue;
             threadMove[threadId] = null;
             Integer[][] minimax = null;
             float res;
-            String strMove;
             Integer[] intMove;
             while(flag){
                 //some calculations
-                randomMove = moves.get(random.nextInt(moves.size()));
-                strMove = convertStrangeMoveToString(randomMove);
-                intMove = convertStrMoveToInts(strMove);
+                randomMove = moves.get(threadRandom.nextInt(moves.size()));
+                intMove = convertStrMoveToInts(randomMove.toString());
                 if (!flag)
                     break;
                 minimax = implementMove(map, intMove);
@@ -75,7 +65,7 @@ public class NaivePlayer extends Player {
     // number of calculation thread helpers
     private int threadsNo = 3;
     // depth of minmax tree
-    private int depth = 2;
+    private int depth = 2; // NOT USED :((((
     // id of calculation thread
     private static int id = 0;
     // final move of thread
@@ -87,8 +77,6 @@ public class NaivePlayer extends Player {
     private float currentValue = 0;
     // final move which will be response
     private Move finalMove = null;
-
-    Board globalBoard = null;
 
     private Integer[][] map = null;
     private Integer[][] pointsMap = null;
@@ -150,20 +138,6 @@ public class NaivePlayer extends Player {
             }
         }
         return result;
-    }
-
-
-    public String convertStrangeMoveToString(Move move){
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        PrintStream ps = new PrintStream(baos);
-        streamLock.lock();
-        PrintStream old = System.out;
-        System.setOut(ps);
-        System.out.println(move);
-        System.out.flush();
-        System.setOut(old);
-        streamLock.unlock();
-        return baos.toString();
     }
 
     public Integer[] convertStrMoveToInts(String strMove) {
@@ -385,7 +359,7 @@ public class NaivePlayer extends Player {
 
         CalculationHelper[] helpers = new CalculationHelper[threadsNo];
         for (int i=0; i<threadsNo; i++){
-            helpers[i] = new CalculationHelper(moves, enemyMoves);
+            helpers[i] = new CalculationHelper(moves, enemyMoves, id++);
             Thread th = new Thread(helpers[i]);
             th.start();
         }
@@ -409,9 +383,7 @@ public class NaivePlayer extends Player {
         if (finalMove == null){
             finalMove = moves.get(random.nextInt(moves.size()));
         }
-        streamLock.lock();
         System.out.println("Heurestic value = " + currentValue);
-        streamLock.unlock();
         id = 0;
         return finalMove;
     }
