@@ -278,13 +278,13 @@ public class NaivePlayer extends Player {
                 else{
                     if (me > 0) {
                         if (me == winNumber)
-                            result += 99999;
+                            result += 99999999;
                         result += Math.floor(Math.exp(me));
                         me = 0;
                     }
                     else if (enemy > 0) {
                         if (enemy == winNumber)
-                            result -= 99999;
+                            result -= 99999999;
                         else if (enemy == winNumber - 1)
                             result -= Math.floor(Math.exp(enemy + 2));
                         result -= Math.floor(Math.exp(enemy + 1));
