@@ -34,7 +34,7 @@ public class NaivePlayer extends Player {
             threadRandom = new Random(0xdeadbeef + threadId);
             threadValue[threadId] = currentValue;
             threadMove[threadId] = null;
-            Integer[][] minimax = null;
+            Integer[][] minimax;
             float res;
             Integer[] intMove;
             while(flag){
@@ -58,9 +58,9 @@ public class NaivePlayer extends Player {
     private Random random = new Random(0xdeadbeef);
 
     // miliseconds that program has to response with final move
-    private int maximumResponseTime = 750;
+    private int maximumResponseTime = 650;
     // number of calculation thread helpers
-    private int threadsNo = 3;
+    private int threadsNo = 5;
     // depth of minmax tree
     private int depth = 2; // not used :/
     // id of calculation thread
@@ -226,8 +226,8 @@ public class NaivePlayer extends Player {
                         if (enemy == winNumber)
                             result -= 99999;
                         else if (enemy == winNumber - 1)
-                            result -= Math.floor(Math.exp(enemy + 1));
-                        result -= Math.floor(Math.exp(enemy));
+                            result -= Math.floor(Math.exp(enemy + 2));
+                        result -= Math.floor(Math.exp(enemy + 1));
                         enemy = 0;
                     }
                 }
@@ -256,8 +256,8 @@ public class NaivePlayer extends Player {
                         if (enemy == winNumber)
                             result -= 999999;
                         else if (enemy == winNumber - 1)
-                            result -= Math.floor(Math.exp(enemy + 1));
-                        result -= Math.floor(Math.exp(enemy));
+                            result -= Math.floor(Math.exp(enemy + 2));
+                        result -= Math.floor(Math.exp(enemy + 1));
                         enemy = 0;
                     }
                 }
@@ -286,8 +286,8 @@ public class NaivePlayer extends Player {
                         if (enemy == winNumber)
                             result -= 99999;
                         else if (enemy == winNumber - 1)
-                            result -= Math.floor(Math.exp(enemy + 1));
-                        result -= Math.floor(Math.exp(enemy));
+                            result -= Math.floor(Math.exp(enemy + 2));
+                        result -= Math.floor(Math.exp(enemy + 1));
                         enemy = 0;
                     }
                 }
@@ -316,8 +316,8 @@ public class NaivePlayer extends Player {
                         if (enemy == winNumber)
                             result -= 99999;
                         else if (enemy == winNumber - 1)
-                            result -= Math.floor(Math.exp(enemy + 1));
-                        result -= Math.floor(Math.exp(enemy));
+                            result -= Math.floor(Math.exp(enemy + 2));
+                        result -= Math.floor(Math.exp(enemy + 1));
                         enemy = 0;
                     }
                 }
