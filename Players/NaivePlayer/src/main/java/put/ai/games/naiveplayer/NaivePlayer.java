@@ -4,8 +4,6 @@
  */
 package put.ai.games.naiveplayer;
 
-import java.io.ByteArrayOutputStream;
-import java.io.PrintStream;
 import java.util.List;
 import java.util.Random;
 
@@ -13,26 +11,18 @@ import put.ai.games.game.Board;
 import put.ai.games.game.Move;
 import put.ai.games.game.Player;
 
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
-
-
-
 public class NaivePlayer extends Player {
-    private final Lock endLock = new ReentrantLock(true);
-    private final Lock streamLock = new ReentrantLock(true);
 
     class CalculationHelper implements Runnable {
         private List<Move> moves;
         private List<Move> enemyMoves;
         private int threadId;
         private volatile boolean flag = true;
-        public CalculationHelper(List<Move> moves, List<Move> enemyMoves) {
+        private Random threadRandom;
+        public CalculationHelper(List<Move> moves, List<Move> enemyMoves, int threadId) {
             this.moves = moves;
             this.enemyMoves = enemyMoves;
-            endLock.lock();
-            threadId = id++;
-            endLock.unlock();
+            this.threadId = threadId;
         }
         public void shutdown(){
             this.flag = false;
@@ -41,17 +31,16 @@ public class NaivePlayer extends Player {
         @Override
         public void run() {
             Move randomMove;
+            threadRandom = new Random(0xdeadbeef + threadId);
             threadValue[threadId] = currentValue;
             threadMove[threadId] = null;
             Integer[][] minimax = null;
             float res;
-            String strMove;
             Integer[] intMove;
             while(flag){
                 //some calculations
-                randomMove = moves.get(random.nextInt(moves.size()));
-                strMove = convertStrangeMoveToString(randomMove);
-                intMove = convertStrMoveToInts(strMove);
+                randomMove = moves.get(threadRandom.nextInt(moves.size()));
+                intMove = convertStrMoveToInts(randomMove);
                 if (!flag)
                     break;
                 minimax = implementMove(map, intMove);
@@ -70,12 +59,10 @@ public class NaivePlayer extends Player {
 
     // miliseconds that program has to response with final move
     private int maximumResponseTime = 750;
-    // flag which tells program to stop calculating
-    private boolean end = false;
     // number of calculation thread helpers
     private int threadsNo = 3;
     // depth of minmax tree
-    private int depth = 2;
+    private int depth = 2; // not used :/
     // id of calculation thread
     private static int id = 0;
     // final move of thread
@@ -87,8 +74,6 @@ public class NaivePlayer extends Player {
     private float currentValue = 0;
     // final move which will be response
     private Move finalMove = null;
-
-    Board globalBoard = null;
 
     private Integer[][] map = null;
     private Integer[][] pointsMap = null;
@@ -102,7 +87,7 @@ public class NaivePlayer extends Player {
             result[i] = map[i].clone();
         result[move[0]][move[1]] = 1;
 
-        boolean clock;
+        boolean clock; // true -> CLOCK ; false -> CLOCKWISE
         int quarter;
         /* quarter: 1 = [ *  ]   2 = [  * ]  3 = [    ]   4 = [    ]
                         [    ]       [    ]      [ *  ]       [  * ]
@@ -121,13 +106,13 @@ public class NaivePlayer extends Player {
         return result;
     }
 
-    public Integer[][] doRotation(Integer[][] map, int quarter, boolean clock){
-        Integer[][] result = new Integer[map.length][];
-        for(int i = 0; i < map.length; i++)
-            result[i] = map[i].clone();
-        int N = map.length;
-
-        if (clock){
+    public Integer[][] rotate(Integer[][] matrix, boolean clock){
+        /* Rotate given matrix */
+        int N = matrix.length;
+        Integer[][] result = new Integer[N][];
+        for(int i = 0; i < N; i++)
+            result[i] = matrix[i].clone();
+        if (!clock){
             for (int i = 0; i < N / 2; i++) {
                 for (int j = 0; j < N - 1 - 2 * i; j++) {
                     int temp = result[j + i][N - 1 - i];
@@ -152,21 +137,48 @@ public class NaivePlayer extends Player {
         return result;
     }
 
+    public Integer[][] doRotation(Integer[][] map, int quarter, boolean clock){
+        /* Apply a rotation in given quarter */
+        int N = map.length;
+        Integer[][] result = new Integer[N][];
+        for(int i = 0; i < N; i++)
+            result[i] = map[i].clone();
 
-    public String convertStrangeMoveToString(Move move){
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        PrintStream ps = new PrintStream(baos);
-        streamLock.lock();
-        PrintStream old = System.out;
-        System.setOut(ps);
-        System.out.println(move);
-        System.out.flush();
-        System.setOut(old);
-        streamLock.unlock();
-        return baos.toString();
+        Integer[][] rotated = new Integer[N/2][N/2];
+        for (int x = 0; x < N / 2; x++) {
+            for (int y = 0; y < N / 2; y++) {
+                if (quarter == 1){
+                    rotated[x][y] = map[x][y];
+                } else if (quarter == 2){
+                    rotated[x][y] = map[x+(N/2)][y];
+                } else if (quarter == 3){
+                    rotated[x][y] = map[x][y+(N/2)];
+                } else if (quarter == 4){
+                    rotated[x][y] = map[x+(N/2)][y+(N/2)];
+                }
+            }
+        }
+        rotated = rotate(rotated, clock);
+
+        for (int x = 0; x < N / 2; x++) {
+            for (int y = 0; y < N / 2; y++) {
+                if (quarter == 1){
+                    result[x][y] = rotated[x][y];
+                } else if (quarter == 2){
+                    result[x+(N/2)][y] = rotated[x][y];
+                } else if (quarter == 3){
+                    result[x][y+(N/2)] = rotated[x][y];
+                } else if (quarter == 4){
+                    result[x+(N/2)][y+(N/2)] = rotated[x][y];
+                }
+            }
+        }
+
+        return result;
     }
 
-    public Integer[] convertStrMoveToInts(String strMove) {
+    public Integer[] convertStrMoveToInts(Move move) {
+        String strMove = move.toString();
         Integer[] result = new Integer[6];
         String regexed = strMove.replaceAll("[^0-9,)]", ""
             ).replaceAll("[)]",",").replaceAll(",,",",");
@@ -385,7 +397,7 @@ public class NaivePlayer extends Player {
 
         CalculationHelper[] helpers = new CalculationHelper[threadsNo];
         for (int i=0; i<threadsNo; i++){
-            helpers[i] = new CalculationHelper(moves, enemyMoves);
+            helpers[i] = new CalculationHelper(moves, enemyMoves, id++);
             Thread th = new Thread(helpers[i]);
             th.start();
         }
@@ -409,9 +421,7 @@ public class NaivePlayer extends Player {
         if (finalMove == null){
             finalMove = moves.get(random.nextInt(moves.size()));
         }
-        streamLock.lock();
         System.out.println("Heurestic value = " + currentValue);
-        streamLock.unlock();
         id = 0;
         return finalMove;
     }
