@@ -345,7 +345,7 @@ public class NaivePlayer extends Player {
     }
 
     @Override
-    public Move nextMove(Board b) throws InterruptedException {
+    public Move nextMove(Board b) {
         long start = System.currentTimeMillis();
         long maxTime = getTime();
 
