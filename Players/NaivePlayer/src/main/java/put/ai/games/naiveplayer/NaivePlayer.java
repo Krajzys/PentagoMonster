@@ -31,10 +31,10 @@ public class NaivePlayer extends Player {
         @Override
         public void run() {
             Move randomMove;
-            threadRandom = new Random(0xdeadbeef + threadId);
+            threadRandom = new Random(0xdeadbeef + (threadId*3));
             threadValue[threadId] = currentValue;
             threadMove[threadId] = null;
-            Integer[][] minimax;
+            Integer[][] minimax = null;
             float res;
             Integer[] intMove;
             while(flag){
@@ -58,9 +58,9 @@ public class NaivePlayer extends Player {
     private Random random = new Random(0xdeadbeef);
 
     // miliseconds that program has to response with final move
-    private int maximumResponseTime = 650;
+    private int maximumResponseTime = 750;
     // number of calculation thread helpers
-    private int threadsNo = 5;
+    private int threadsNo = 3;
     // depth of minmax tree
     private int depth = 2; // not used :/
     // id of calculation thread
@@ -226,8 +226,8 @@ public class NaivePlayer extends Player {
                         if (enemy == winNumber)
                             result -= 99999;
                         else if (enemy == winNumber - 1)
-                            result -= Math.floor(Math.exp(enemy + 2));
-                        result -= Math.floor(Math.exp(enemy + 1));
+                            result -= Math.floor(Math.exp(enemy + 1));
+                        result -= Math.floor(Math.exp(enemy));
                         enemy = 0;
                     }
                 }
@@ -256,8 +256,8 @@ public class NaivePlayer extends Player {
                         if (enemy == winNumber)
                             result -= 999999;
                         else if (enemy == winNumber - 1)
-                            result -= Math.floor(Math.exp(enemy + 2));
-                        result -= Math.floor(Math.exp(enemy + 1));
+                            result -= Math.floor(Math.exp(enemy + 1));
+                        result -= Math.floor(Math.exp(enemy));
                         enemy = 0;
                     }
                 }
@@ -278,16 +278,16 @@ public class NaivePlayer extends Player {
                 else{
                     if (me > 0) {
                         if (me == winNumber)
-                            result += 99999999;
+                            result += 99999;
                         result += Math.floor(Math.exp(me));
                         me = 0;
                     }
                     else if (enemy > 0) {
                         if (enemy == winNumber)
-                            result -= 99999999;
+                            result -= 99999;
                         else if (enemy == winNumber - 1)
-                            result -= Math.floor(Math.exp(enemy + 2));
-                        result -= Math.floor(Math.exp(enemy + 1));
+                            result -= Math.floor(Math.exp(enemy + 1));
+                        result -= Math.floor(Math.exp(enemy));
                         enemy = 0;
                     }
                 }
@@ -316,8 +316,8 @@ public class NaivePlayer extends Player {
                         if (enemy == winNumber)
                             result -= 99999;
                         else if (enemy == winNumber - 1)
-                            result -= Math.floor(Math.exp(enemy + 2));
-                        result -= Math.floor(Math.exp(enemy + 1));
+                            result -= Math.floor(Math.exp(enemy + 1));
+                        result -= Math.floor(Math.exp(enemy));
                         enemy = 0;
                     }
                 }
@@ -374,7 +374,7 @@ public class NaivePlayer extends Player {
             }
         }
         currentValue = mapValue(map, pointsMap);
-        System.out.println("Current value is " + currentValue);
+        //System.out.println("Current value is " + currentValue);
     }
 
     @Override
@@ -421,7 +421,7 @@ public class NaivePlayer extends Player {
         if (finalMove == null){
             finalMove = moves.get(random.nextInt(moves.size()));
         }
-        System.out.println("Heurestic value = " + currentValue);
+        //System.out.println("Heurestic value = " + currentValue);
         id = 0;
         return finalMove;
     }
